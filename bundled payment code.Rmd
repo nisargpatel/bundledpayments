@@ -1,0 +1,63 @@
+---
+title: "Bundled Payments as a Financing Model to Scale Emergency Department Diversion Programs for Dental Pain"
+author: "Nisarg Patel"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("tidyverse")
+library(ggplot2)
+```
+
+```{r}
+# define variables 
+n <- NA #population size
+ev <- 0.18 # Percentage of population that visits the emergency department annually
+nv <- 2.31 # Average visits per individual who visits the emergency department.
+fd <- 0.017 # Percentage of emergency department visits with a chief complaint of dental pain
+Pd <- 749 # Average cost of managing dental pain in the emergency department
+Dd <- 0.79 # Percentage of Emergency Department visits for dental pain that can be diverted to a dental practice.
+Pp <- NA # Per-patient price to manage dental pain in a partnering dental practice.
+
+# define bundled payment models (n is independent variable x)
+
+#Status quo
+squo <- function(x) {
+  x*(ev*nv*fd*Pd)
+}
+
+# Bundle, Pp is $685
+bundle_min <- function(x) {
+  x*(ev*fd)*(Dd*685 + nv*(1-Dd)*Pd)
+}
+
+# Bundle, Pp is $1208
+bundle_mean <- function(x) {
+  x*(ev*fd)*(Dd*1208 + nv*(1-Dd)*Pd)
+}
+
+ggplot(data.frame(x=c(0, 200000)), aes(x)) + stat_function(fun=squo, aes(colour = "Status Quo")) + stat_function(fun=bundle_min, aes(colour = "Bundle ($685)")) + stat_function(fun=bundle_mean, aes(colour = "Bundle ($1208)")) + xlab("Number of patients managed by hospital (n)") + ylab("Total hospital spend (USD)") + scale_colour_manual("Models", values = c("deeppink", "dodgerblue3", "red"))
+```
+
+```{r}
+# assuming n = 200,000, we see how total hospital changes as a higher percentage of patients are diverted to partnering dental practices at the mean Pp of $1208.
+n <- 200000
+Pp <- 1208
+# total cost of patients that were diverted to partnering dental practices
+diverted <- function(x) {
+  n*(ev*fd)*x*Pp
+}
+
+# total cost of patients that could not be diverted to partnering dental practices and were managed in the ED
+remain <- function(x) {
+  n*(ev*fd)*nv*(1-x)*Pd
+}
+
+# total hospital spend
+total <- function(x) {
+  n*(ev*fd)*(x*1208 + nv*(1-x)*Pd)
+}
+
+ggplot(data.frame(x=c(0, .80)), aes(x)) + stat_function(fun=diverted, aes(colour = "Total Cost for Diverted Patients")) + stat_function(fun=remain, aes(colour = "Total Cost for Patients Managed in ED")) + stat_function(fun=total, aes(colour = "Total Hospital Spend")) + xlab("Percentage of patients diverted to partnering dental practices (Dd)") + ylab("Cost to Hospital (USD)") + scale_colour_manual("Costs", values = c("deeppink", "dodgerblue3", "red"))
+```
